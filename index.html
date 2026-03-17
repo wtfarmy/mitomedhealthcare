@@ -3,84 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mitomed Healthcare - Drug & Medicine Manufacturers, Varanasi</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Font Awesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>CodeX | Dual Engine AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-
-        // Global variables provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        
-        // Using the specific firebaseConfig provided by the user
-        const userFirebaseConfig = {
-            apiKey: "AIzaSyBnDGSg_K60_Tp7w13c-O8Jb9hLkErSCY8",
-            authDomain: "gamexd-110.firebaseapp.com",
-            projectId: "gamexd-110",
-            storageBucket: "gamexd-110.firebasestorage.app",
-            messagingSenderId: "501792431454",
-            appId: "1:501792431454:web:10024d189316ef9e2303cf"
-        };
-        // Use the environment token if available, otherwise null
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let app, db, auth, userId = null;
-
-        // Initialize Tailwind Colors and Font
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'mitomed-primary': '#06b6d4', // Sky Blue/Cyan for healthcare
-                        'mitomed-secondary': '#0e7490', // Darker Cyan
-                        'mitomed-ribbon': '#fcd34d', // Amber/Gold for contrast
-                        'mitomed-dark': '#1f2937', // Gray 800
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
+    <style>
+        :root {
+            --bg: #020406;
+            --accent: #00d2ff;
+            --claude-accent: #ff8c42; /* Claude Theme Color */
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
         }
+
+        body {
+            margin: 0; font-family: 'Outfit', sans-serif;
+            background: var(--bg); color: var(--text);
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            background-image: radial-gradient(circle at top right, rgba(0, 210, 255, 0.05), transparent 40%);
+        }
+
+        header {
+            padding: 15px 25px; display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tabs { display: flex; gap: 10px; padding: 15px 20px; }
+        .tab {
+            padding: 8px 18px; border-radius: 50px; background: var(--glass);
+            border: 1px solid var(--border); cursor: pointer; font-size: 13px; opacity: 0.5;
+        }
+        .tab.active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+        .tab.claude-active { border-color: var(--claude-accent); color: var(--claude-accent); opacity: 1; }
+
+        #chat-window { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         
-        // --- Mitomed Product Data ---
-        const mitomedProducts = [
-            { id: 1, name: "MitroFlex Tablet (500mg)", description: "Advanced analgesic and anti-inflammatory relief for chronic pain.", category: "Pain Management", price: 12.50, color: "bg-cyan-500", imageText: "MitroFlex" },
-            { id: 2, name: "VitaGen Multivitamin Syrup", description: "Comprehensive daily essential vitamins formulated for optimal health.", category: "Nutraceuticals", price: 8.99, color: "bg-indigo-500", imageText: "VitaGen" },
-            { id: 3, name: "CoughEase DM Expectorant", description: "Fast-acting cough syrup providing relief from dry and productive coughs.", category: "Respiratory", price: 5.75, color: "bg-red-500", imageText: "CoughEase" },
-            { id: 4, name: "Dermocare Skin Cream", description: "Moisturizing cream for sensitive skin, dermatologically tested and approved.", category: "Dermatology", price: 19.99, color: "bg-green-500", imageText: "Dermocare" },
-            { id: 5, name: "GastroGuard Antacid Gel", description: "Liquid gel offering rapid relief from heartburn and acidity.", category: "Gastroenterology", price: 7.25, color: "bg-yellow-500", imageText: "GastroGuard" },
-            { id: 6, name: "Immuno-Max Capsules", description: "Immune support capsules enriched with Zinc and Vitamin C.", category: "Immunity", price: 15.00, color: "bg-purple-500", imageText: "ImmunoMax" },
-        ];
+        .bubble { max-width: 85%; padding: 12px 18px; border-radius: 18px; font-size: 15px; animation: pop 0.3s ease; }
+        @keyframes pop { from { opacity: 0; transform: scale(0.95); } }
 
-        // --- Core App Logic & State Management ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const loginButtonDesktop = document.getElementById('login-btn-desktop');
-            const loginButtonMobile = document.getElementById('login-btn-mobile');
-            const userStatusDisplay = document.getElementById('user-status');
-            const userStatusDisplayMobile = document.getElementById('user-status-mobile');
-            const mobileMenuPanel = document.getElementById('mobile-menu-panel');
-            const mobileMenuButton = document.getElementById('mobile-menu-btn');
-            const menuIcon = document.getElementById('menu-icon');
+        .user { align-self: flex-end; background: linear-gradient(135deg, #00d2ff, #0072ff); color: white; }
+        .ai { align-self: flex-start; background: var(--glass); border: 1px solid var(--border); }
 
-            // Set up Firebase
+        .input-area { padding: 20px; }
+        .input-box {
+            max-width: 800px; margin: 0 auto; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border); border-radius: 25px;
+            display: flex; align-items: center; padding: 5px 15px;
+        }
+        input { flex: 1; background: transparent; border: none; color: #fff; padding: 12px; outline: none; }
+        #sendBtn { color: var(--accent); font-size: 22px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">CODEX <span>OMNI-AI</span></div>
+    </header>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-gemini">Gemini 1.5</div>
+        <div class="tab" id="tab-claude">Claude 3.5</div>
+    </div>
+
+    <div id="chat-window">
+        <div class="bubble ai">Dual Engines Loaded. <br>Select a tab and start chatting!</div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-box">
+            <input type="text" id="userInput" placeholder="Ask Gemini..." autocomplete="off">
+            <i class="fa-solid fa-paper-plane" id="sendBtn"></i>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        // API KEYS
+        const GEMINI_KEY = "AIzaSyB17ftFGQsARS1jYZME5CqHQ8NmJylRKiM";
+        const CLAUDE_KEY = "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";
+
+        let currentEngine = "Gemini";
+        const chatWin = document.getElementById('chat-window');
+        const input = document.getElementById('userInput');
+        const btn = document.getElementById('sendBtn');
+
+        // Setup Gemini
+        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+        const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // Tab Switching
+        document.getElementById('tab-gemini').onclick = () => {
+            currentEngine = "Gemini";
+            switchTab('tab-gemini', 'active');
+        };
+        document.getElementById('tab-claude').onclick = () => {
+            currentEngine = "Claude";
+            switchTab('tab-claude', 'claude-active');
+        };
+
+        function switchTab(id, activeClass) {
+            document.querySelectorAll('.tab').forEach(t => {
+                t.className = 'tab';
+            });
+            document.getElementById(id).classList.add(activeClass);
+            input.placeholder = `Ask ${currentEngine}...`;
+        }
+
+        async function handleSend() {
+            const prompt = input.value.trim();
+            if(!prompt) return;
+
+            chatWin.innerHTML += `<div class="bubble user">${prompt}</div>`;
+            input.value = "";
+            const tId = "ai-" + Date.now();
+            chatWin.innerHTML += `<div class="bubble ai" id="${tId}">Thinking...</div>`;
+            chatWin.scrollTop = chatWin.scrollHeight;
+
             try {
-                if (Object.keys(userFirebaseConfig).length > 0) {
-                    app = initializeApp(userFirebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                    
-                    // Initial authentication (maintaining Canvas environment required auth)
-                    if (initialAuthToken) {
-                        signInWithCustomToken(auth, initialAuthToken).catch(e => {
-                            console.error("Custom token sign-in failed, falling back to anonymous:", e);
-                            signInAnonymously(auth);
-                        });
+                if(currentEngine === "Gemini") {
+                    const result = await geminiModel.generateContent(prompt);
+                    document.getElementById(tId).innerText = result.response.text();
+                } else {
+                    // Claude API Call via Proxy (to avoid CORS)
+                    const response = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                            "x-api-key": CLAUDE_KEY,
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json",
+                            "dangerouslyAllowBrowser": "true" // Note: browser call needs backend in production
+                        },
+                        body: JSON.stringify({
+                            model: "claude-3-5-sonnet-20240620",
+                            max_tokens: 1024,
+                            messages: [{ role: "user", content: prompt }]
+                        })
+                    });
+                    const data = await response.json();
+                    document.getElementById(tId).innerText = data.content[0].text;
+                }
+            } catch (err) {
+                document.getElementById(tId).innerHTML = `<span style="color:#ff6b6b">Error: API call failed. Ensure you are using a real browser tab.</span>`;
+            }
+            chatWin.scrollTop = chatWin.scrollHeight;
+        }
+
+        btn.onclick = handleSend;
+        input.onkeypress = (e) => { if(e.key === 'Enter') handleSend(); };
+    </script>
+</body>
+</html>
                     } else {
                         signInAnonymously(auth);
                     }
